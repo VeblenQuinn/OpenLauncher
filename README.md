@@ -160,7 +160,7 @@ src/OpenLauncher/
   Update/      签名清单与自更新
   UI/          WPF 界面
 tools/Release/ 发布工具：生成密钥、签名清单、校验
-tools/         构建 cubiomes 引擎、生成图标
+tools/         构建与校验 cubiomes 引擎
 ```
 
 ## 自己编译
@@ -170,8 +170,6 @@ tools/         构建 cubiomes 引擎、生成图标
 ```powershell
 .\build.ps1        # 产物在 dist\OpenLauncher.exe
 ```
-
-也可以在 VS Code 里按 `Ctrl+Shift+B`，用 `.vscode/tasks.json` 里的任务。
 
 ## 发版
 
