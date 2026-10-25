@@ -1,0 +1,14 @@
+# 统一换行，避免 Windows 开发者把 CRLF 提交上去导致全仓 diff
+* text=auto eol=lf
+
+# 需要在 Windows 上保持 CRLF 的脚本（PowerShell 5.1 对 LF 的 .ps1 有时会解析异常）
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制
+*.dll binary
+*.pdb binary
+*.ico binary
+*.png binary
+*.exe binary
