@@ -187,7 +187,7 @@ dotnet build .\tools\Release\OpenLauncher.Release.csproj -c Release
 .\tools\Release\bin\Release\ol-release.exe fingerprint D:\keys\public-key.xml
 
 # 2) 编译 + 签名更新清单
-.\publish.ps1 -Version 0.1.45 -Key D:\keys\private-key.xml -Pub D:\keys\public-key.xml -Urls "https://github.com/VeblenQuinn/OpenLauncher/releases/download/v0.1.45/OpenLauncher.exe"
+.\publish.ps1 -Version 0.1.45 -Key D:\keys\private-key.xml -Pub D:\keys\public-key.xml -Urls "https://github.com/用户名/仓库/releases/download/v0.1.45/OpenLauncher.exe"
 ```
 
 `publish.ps1` 会改 `OpenLauncher.csproj` 的版本号、跑 `build.ps1`、生成并校验 `release\update.json`。
