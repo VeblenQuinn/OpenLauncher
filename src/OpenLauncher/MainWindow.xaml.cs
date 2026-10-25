@@ -106,16 +106,6 @@ namespace OpenLauncher
 #if DEBUG
             InitDebugProbes();
 #endif
-#if DEBUG
-            if (DemoCapture.Active)
-            {
-                ShowActivated = false;
-                WindowStartupLocation = WindowStartupLocation.Manual;
-                Left = -6000; Top = 100;
-                Loaded += async (s, e) => await DemoCapture.RunAsync();
-                return;
-            }
-#endif
             Loaded += async (s, e) => await StartupChecksAsync();
         }
 
@@ -126,9 +116,6 @@ namespace OpenLauncher
         /// </summary>
         void SetStartupHidden()
         {
-#if DEBUG
-            if (DemoCapture.Active) return;   // 离屏截图不能是透明的
-#endif
             Background = new SolidColorBrush(Theme.Background);
             Opacity = 0;
             // 再加一层保险：窗口先建在屏幕外。

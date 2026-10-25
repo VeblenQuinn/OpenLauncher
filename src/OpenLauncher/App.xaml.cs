@@ -78,9 +78,6 @@ namespace OpenLauncher
 
             Theme.Apply(Settings.ThemeColor);
             Mark("应用主题");
-#if DEBUG
-            DemoCapture.Init(e.Args);
-#endif
 
 #if DEBUG
             // 诊断：OL_BARE_WINDOW=1 用一个最简窗口替代主窗口，用来分辨「启动慢是 WPF 冷启动」

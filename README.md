@@ -223,3 +223,12 @@ Copyright (C) 2026 OpenLauncher contributors
 - **不能**：把本项目（或其衍生品）改成闭源专有软件再分发。
 
 本程序是「用户程序」，因此 GPL-3.0 §6「随程序提供安装信息」的要求同样适用：分发编译好的 exe 时，请同时提供本仓库地址，或把 `src/` 一并附上。
+
+## 声明
+
+- 本项目与 Mojang Studios、Microsoft 无任何隶属或合作关系。Minecraft 是 Mojang Studios 的商标，本项目的使用须遵守 [Minecraft 最终用户许可协议](https://www.minecraft.net/eula)。
+- 本项目不提供、不分发任何游戏本体文件。所有游戏资源均由用户自行从官方源下载。
+- 本项目代码以 GPL-3.0-only 开源（见[许可证](#许可证)）。若遇到问题，请到 [Issues](https://github.com/VeblenQuinn/OpenLauncher/issues) 反馈，而不是向 Mojang 或镜像提供方投诉。
+- 下载加速依赖社区公益服务：BMCLAPI（bangbang93）、MCIM 等。**请合理使用，不要滥用**——这些服务器由个人自费维护。
+- 本项目源于 [OpenLauncher](https://honghemc.cn/openlauncher/)，沿用其整体架构与界面设计，在此致谢。
+
