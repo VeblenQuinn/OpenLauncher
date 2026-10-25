@@ -20,8 +20,8 @@ namespace OpenLauncher
         public static readonly string[] DefaultUpdateSources =
         {
             "https://raw.githubusercontent.com/VeblenQuinn/OpenLauncher/main/release/update.json",
-            "https://cdn.jsdelivr.net/VeblenQuinn/OpenLauncher@main/release/update.json",
-            "https://fastly.jsdelivr.net/VeblenQuinn/OpenLauncher@main/release/update.json",
+            "https://cdn.jsdelivr.net/gh/VeblenQuinn/OpenLauncher@main/release/update.json",
+            "https://fastly.jsdelivr.net/gh/VeblenQuinn/OpenLauncher@main/release/update.json",
             "https://gitee.com/veblenquinn1/OpenLauncher/raw/main/release/update.json",
             "https://ghfast.top/https://raw.githubusercontent.com/VeblenQuinn/OpenLauncher/main/release/update.json",
         };
