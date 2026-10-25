@@ -1378,7 +1378,7 @@ namespace OpenLauncher.UI.Pages
             int dist = (int)Math.Round(Math.Sqrt((double)mark.X * mark.X + (double)mark.Z * mark.Z));
             int chunkX = mark.X >> 4, chunkZ = mark.Z >> 4;
             CardCoord.Text = $"X {mark.X}   Z {mark.Z}";
-            CardMeta.Text = $"区块 {chunkX}, {chunkZ}（/tp @s {mark.X} 64 {mark.Z}）\n" +
+            CardMeta.Text = $"区块 {chunkX}, {chunkZ}（/tp {mark.X} ~ {mark.Z}）\n" +
                             $"距原点 {dist} 格\n" +
                             $"群系 {BiomeNameAt(mark.X, mark.Z)}";
 
@@ -1418,21 +1418,12 @@ namespace OpenLauncher.UI.Pages
 
         void CardClose_Click(object sender, RoutedEventArgs e) => HideCard();
 
-        void CardGoto_Click(object sender, RoutedEventArgs e)
-        {
-            if (_cardMark == null) return;
-            _cx = _cardMark.X;
-            _cz = _cardMark.Z;
-            ClampCenter();
-            HideCard();
-            Render();
-        }
-
+        /// <summary>结构详情卡的「复制指令」：复制可直接粘进聊天框的传送指令。</summary>
         void CardCopy_Click(object sender, RoutedEventArgs e)
         {
             if (_cardMark == null) return;
-            try { Clipboard.SetText($"{_cardMark.X} {_cardMark.Z}"); }
-            catch (Exception ex) { Log.Warn("复制坐标失败：" + ex.Message); }
+            try { Clipboard.SetText($"/tp {_cardMark.X} ~ {_cardMark.Z}"); }
+            catch (Exception ex) { Log.Warn("复制指令失败：" + ex.Message); }
         }
 
         /// <summary>取某个世界坐标的群系名。只有算过的瓦片才有数据，否则如实说还没算。</summary>
