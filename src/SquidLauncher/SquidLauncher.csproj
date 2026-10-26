@@ -1,0 +1,104 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>SquidLauncher</AssemblyName>
+    <RootNamespace>SquidLauncher</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <!--
+      版本号规则：每次改动都加一位（0.1.N），改完立刻 dotnet build 确认可编译。
+      0.1.1  暗色模式（浅色 / 深色 / 跟随系统，标题栏一键切换）
+      0.1.2  修复暗色模式下列表中未显式设色的文字仍是黑色
+      0.1.3  修复不确定态进度条滑块飞出边界
+      0.1.4  设置页滚动与左侧导航双向联动
+      0.1.5  平滑滚动（滚轮 + 代码跳转）
+      0.1.6  修复下载页等列表没有平滑滚动
+      0.1.7  Xbox 手柄操作（XInput）：空间焦点导航、焦点框、按键提示
+      0.1.8  手柄提示条改为不遮挡内容的独立行；焦点框帧同步、滚动时隐藏、越界不画；鼠标/键盘一动立即退出
+      0.1.9  修复手柄按住键重复触发、滚动打断手柄模式、手柄随机失灵（边沿检测抽为 GamepadLatch）
+      0.1.10 去掉翻页冷却；修复大量控件选不到（不再按窗口边界过滤候选）、支持下拉框展开后导航
+      0.1.11 “更多”页改为左侧导航 + 标签页结构，现有内容归入“关于启动器”，预留“待定”空页
+      0.1.12 “待定”页换成种子地图：种子/版本/维度/缩放、拖动平移、悬停识别群系；世界生成交给 cubiomes（MIT），引擎缺失时给引导而不是空白
+      0.1.13 种子地图可以一键下载引擎：多源签名清单 + SHA-256 校验，装完自动重新加载；发布工具新增 publish-engine
+      0.1.14 种子地图支持到 26.3（改用社区 cubiomes 分支，含 MC_26_3 与新版群系）；引擎改成第一次打开自动下载（单一固定地址，不再做多源签名清单）
+      0.1.15 种子地图引擎打通：加 ol_* 薄封装避开 Generator 192KB 结构体与跨堆释放问题，26.3 真实出图；引擎版本由 DLL 自报并自动校正版本下拉
+      0.1.16 种子地图改成两级缓冲，拖动不再卡顿：粗层（快）负责拖动预览与平移，细层（准）后台补细节；修掉平移导致的地图抖动
+      0.1.17 build.ps1 自愈：改用 $PSScriptRoot 定位根目录（点来源也能跑），并在 BG1001/BG1002 中间产物损坏时自动清 obj 重试
+      0.1.18 种子地图改成瓦片式：拖动/缩放只移动缩放已算好的格子，新露出的区域先空着，算好一块淡入一块；修掉缩放下拉被误设为 1:4 的 bug
+      0.1.19 种子地图改成连续平滑缩放：去掉 1:4/1:16/1:64/1:256 档位，滚轮与 +/− 按比例缩放并带缓动，瓦片按 2 的幂分级缓存
+      0.1.20 修掉缩放时瓦片抖动/遮缝：瓦片位置改成按「边缘」取整（而非左上角取整 + 小数尺寸），相邻块共用同一条像素边
+      0.1.21 种子地图支持结构：左侧可勾选 18 类结构，地图上标出位置、点击弹出详情（坐标/区块/传送命令/群系）；引擎新增 ol_structure_scan 批量导出（只重建一次 Generator），旧引擎自动静默升级
+      0.1.22 修掉结构标记越远越少：扫描改用 getStructureConfig 的真实 regionSize（原先硬编码 512 方块，村庄实为 544、府邸 1280，坐标一大就整体错位）；结构勾选文字改用主题画刷，暗色模式可读
+      0.1.23 补齐剩余的主题前景：默认 CheckBox 的 Foreground 默认是固定黑（SystemColors.ControlTextBrush），在 Styles.xaml 加隐式样式统一绑 Text 画刷，种子地图的「结构标记」在暗色下也能看清
+      0.1.24 种子地图结构筛选改为一列显示；补齐缺失结构（要塞/废弃营地/沙漠水井/埋藏的宝藏/废弃矿井/末地折跃门）。要塞从 1.9 起按环形稀疏分布、没有区域格，只能顺序迭代，所以引擎新增 ol_strongholds 并按 (版本,种子) 缓存全部 128 个位置
+      0.1.25 修掉结构筛选列表与左侧面板滚动冲突：结构列表是嵌套滚动区，滚轮在隧道阶段就被外层 ScrollViewer 处理掉（内层挂 handler 一次都收不到），所以改为在外层拦——鼠标落在列表上且列表还能滚时把滚轮转给列表，到顶/到底再放行给外层
+      0.1.26 结构列表滚动冲突彻底解决：WPF 的 ScrollViewer 用 handledEventsToo 注册滚轮类处理器，会无视 e.Handled，只要嵌套就必然两边一起滚（实测挂 handler 设 Handled=true 后外层仍滚 84px/格）。改为去掉外层 ScrollViewer，左栏改成 Grid 分行，结构列表是唯一可滚区；坐标/群系/引擎状态移到地图底部状态条腾出高度，按钮并成两行
+      0.1.27 种子地图细节：引擎就绪时不再显示「生成引擎已就绪」那行（只在出错时提示）；没算出来的区块提示改成「加载中…」；补全群系中文名表（原先只覆盖 44 个，其余显示成「群系 #45」这种编号），现在覆盖全部 72 个可渲染群系
+      0.1.28 种子地图精简左栏：删掉「复制坐标」按钮（坐标在状态条上一直可见，复制交给结构详情卡片）；删掉缩放的 ± 按钮，比例改为只读显示在地图右下角状态条
+      0.1.29 种子地图新增「前往坐标」：输入 X/Z 回车即跳转（也认 100,200 和 100 64 200 这种带 Y 的写法，方便直接贴 F3 或 /tp 命令）；跳转不清空已算瓦片，近距离能直接复用
+      0.1.30 跳转后在目标点画十字标记（青环 + 四向刻度 + 坐标标签），拖动缩放都跟手；换种子/版本/维度时自动收掉
+      0.1.31 跳转标记改成地图上常见的图钉样式（红身白心白描边，尖端指着目标点），去掉坐标标签；尺寸固定像素，地图放大缩小时不再跟着变大
+      0.1.32 种子地图引擎改为**直接打包进 exe**（Assets\cubiomes.dll 作为嵌入资源），启动时自动解到工具目录，不再联网下载。App.OnStartup 里提前解出，避开「旧 DLL 已被加载无法覆盖」；只有内置那份缺失/损坏才回退到 EngineUrl 下载。相关文案从「下载」改为「解出」
+      0.1.33 兜底机制改为**由用户决定**：内置引擎损坏时不再偷偷联网，弹窗给出「暂不处理 / 选择本地文件 / 从网络下载」三个选项；旧引擎升级也改成询问（新增「用程序自带的」）。用户自选过的引擎会记 source=custom，之后不自动覆盖；选错文件会自动还原上一份并能立刻加载验证
+      0.1.34 引擎下载地址留空（Branding.EngineUrl=""、EngineMirrors 清空）。地址为空时弹窗不再出现「从网络下载」按钮，提示文案也改为只说选本地文件；DownloadEngine 在无地址时退回弹窗而不报错
+      0.1.35 社区资源页新增「已安装」标记：按「安装到」选中的版本自动扫描 mods / resourcepacks / shaderpacks（读安装时写的索引，手放进去的文件再用 Modrinth 哈希认），列表里直接显示「已安装」，当前游戏版本下已有新版时显示「已安装 · 旧版本」；详情页把「已安装」标在具体那个版本上，装完立即刷新
+      0.1.36 修「已安装」的两个盲区：① 详情页改成先看目录里有没有这个文件（含 .disabled），再对索引里的版本 ID / 文件名，跨资源站也能认出来；② 给已装项目补全 slug（存在 .openlauncher-hashes.json，只查一次），这样在 CurseForge 页面上搜同一个 Mod 也会标「已安装」。旧版本检查不再只限 Modrinth 装的文件，凡哈希在 Modrinth 上存在就能算
+      0.1.37 详情页新增前置 Mod 面板：选中一个文件就在列表上方列出它的必需前置（自动换成项目名，已安装的标出来），每个前置带「跳转」直接开它的详情页；点下载时先解析完整前置链（含递归前置、已装跳过、找不到的单独提示），再弹窗让用户选「只装这个 / 一并下载（N 个）」，不再默默补齐
+      0.1.38 社区资源列表滚到底时给提示：正在加载下一页时列表下方显示「正在加载更多…」+ 进度条，全部加载完则显示「没有更多了」；顺带修掉服务端返回空页时 total 不推导致反复请求的问题
+      0.1.39 滚到底提示的排版修正：文字改到滑动条上方（不再并排在侧面），滑动条换成自绘的循环扫描动画（原先进度条的不确定态动画在这个尺寸下只剩一条空条）
+      0.1.40 启动加速：四个主页面改成第一次进那个标签页才创建（原先建表就 new 四个页面）；清理更新残留文件、手柄初始化、背景图解码挪到首帧之后；启动页的头像与最新版本改到首帧之后再联网。日志新增逐阶段启动耗时（[启动] 读取设置 +Xms…）与渲染层级，慢在哪一步一眼能看到；另加 OL_SOFTWARE_RENDER=1 用于显卡驱动异常时强制软件渲染
+      0.1.41 修掉启动时闪一下纯白界面（暗处晃眼）：窗口刚建好到画出第一帧之间，Windows 会用窗口类的默认白色背景刷擦客户区，现在在 SourceInitialized 里换成主题底色（Theme.PaintWindowBack，OL_NO_CLASS_BRUSH=1 可关掉对比）；同时内容先透明、首帧渲染完再淡入 160ms，这段等待只会看到深色窗框而不是白底
+      0.1.42 白闪彻底消掉：根因是 Window.Background 用的 DynamicResource 在首次布局前还没解析，客户区露的是系统白（0.1.41 只改类背景刷不够）。现在启动时显式给窗口涂主题底色 + 整窗 Opacity=0 + 窗口先建在屏幕外(-30000)，等首帧渲染完成再移回屏幕中央并淡入 140ms —— 界面完全就绪之前，屏幕上不会出现任何窗口
+      0.1.43 头像与版本列表改成「先读缓存、后联网更新」：新增 Skins.GetHeadCached（只读本地 PNG 渲染，零网络）与 VersionList.GetMinecraftCached（同步读 version_manifest_v2.json），启动页先用缓存立刻显示上次的头像与「最新正式版/快照」，随后后台联网刷新并覆盖。皮肤缓存 30 分钟内有效，期间完全不联网；头像有缓存时也不再把头像清成占位图（原先切页会闪一下）
+      0.1.44 删掉手柄支持（Gamepad / GamepadLatch / GamepadNavigation 三个文件，约 37KB）：去掉焦点框、按键提示条、XInput 轮询与相关设置项（设置页的「手柄」分段、input.gamepad / input.gamepadDeadzone），启动也不再装载 xinput1_4.dll。同时移除「输出手柄可选控件」「连续按方向键」两个手柄诊断探针。窗口不再留第三行给提示条
+      0.1.45 种子地图的结构详情卡：传送指令 Y 值改用 ~（保持当前高度），不再写死 64，避免传送到地下或空中；去掉很少用得上的「定位到这里」按钮，改为「复制指令」直接复制 /tp X ~ Z
+    -->
+    <Version>0.1.48</Version>
+    <Product>SquidLauncher</Product>
+    <Description>去中心化的 Minecraft 启动器</Description>
+    <!--
+      版权行只写「持有人 + 年份」。不要在 Copyright 里写许可证名：
+      那会让 exe 属性页显示成 “Copyright SquidLauncher contributors, GPL-3.0”，
+      既不是有效版权声明，也容易让人以为许可证可以单独进版权字段。
+      许可证由仓库根目录的 LICENSE 与 README「许可证」一节声明。
+    -->
+    <Copyright>Copyright (C) 2026 SquidLauncher contributors</Copyright>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>embedded</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS0618</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Security" />
+    <Reference Include="Microsoft.VisualBasic" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\icon.png" />
+    <!-- 启动加载动画（闪屏窗口用）。WPF 自带的 GIF 播放对「局部帧优化」过的 GIF 不可靠，改由 UI/GifPlayer.cs 自己合成。 -->
+    <Resource Include="Assets\loading.gif" />
+    <EmbeddedResource Include="Assets\zh-names.json" LogicalName="zh-names.json" />
+    <!--
+      种子地图引擎：直接打进 exe，启动时解出来用，用户不再需要联网下载。
+      1.5MB 左右，换引擎时把新 DLL 覆盖到这里即可（同时改 Branding.EngineSha256）。
+    -->
+    <EmbeddedResource Include="Assets\cubiomes.dll" LogicalName="cubiomes.dll" />
+  </ItemGroup>
+
+</Project>

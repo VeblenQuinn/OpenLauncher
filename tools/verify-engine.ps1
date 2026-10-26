@@ -1,6 +1,6 @@
 param(
     # 默认检查仓库里打包的那份引擎
-    [string]$Dll = (Join-Path (Split-Path -Parent $PSScriptRoot) 'src\OpenLauncher\Assets\cubiomes.dll')
+    [string]$Dll = (Join-Path (Split-Path -Parent $PSScriptRoot) 'src\SquidLauncher\Assets\cubiomes.dll')
 )
 
 $ErrorActionPreference = 'Stop'

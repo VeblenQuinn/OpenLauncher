@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using OpenLauncher.Core;
-using OpenLauncher.Update;
+using SquidLauncher.Core;
+using SquidLauncher.Update;
 
-namespace OpenLauncher.Core
+namespace SquidLauncher.Core
 {
     // UpdateCrypto 依赖 Util.Sha256，这里给一个最小实现，避免把整个启动器的 Util 拉进来
     static class Util
@@ -19,7 +19,7 @@ namespace OpenLauncher.Core
     }
 }
 
-namespace OpenLauncher.Release
+namespace SquidLauncher.Release
 {
     static class Program
     {
@@ -47,17 +47,17 @@ namespace OpenLauncher.Release
 
         static int Help()
         {
-            Console.WriteLine(@"ol-release —— OpenLauncher 发布工具
+            Console.WriteLine(@"ol-release —— SquidLauncher 发布工具
 
   ol-release keygen <输出目录>
       生成一对 RSA-3072 发布密钥：private-key.xml（绝对保密，丢了就不能再发版）和 public-key.xml（写进 Branding.cs）
 
-  ol-release publish --exe <OpenLauncher.exe> --version <0.1.1> --key <private-key.xml> --pub <public-key.xml>
+  ol-release publish --exe <SquidLauncher.exe> --version <0.1.1> --key <private-key.xml> --pub <public-key.xml>
                      --url <下载地址1> [--url <下载地址2> ...] [--notes <更新说明.md>] [--config <config.json>]
                      [--add-key <新公钥.xml>] [--revoke <指纹>] --out <release/update.json>
       计算 exe 的 SHA-256，生成并签名更新清单。--config 可附带下发镜像表 / 更新源 / 中文词表。
 
-  ol-release verify --in <update.json> --pub <public-key.xml> [--exe <OpenLauncher.exe>]
+  ol-release verify --in <update.json> --pub <public-key.xml> [--exe <SquidLauncher.exe>]
       校验清单签名（以及 exe 哈希）
 
   ol-release fingerprint <public-key.xml>");
@@ -94,7 +94,7 @@ namespace OpenLauncher.Release
             File.WriteAllText(Path.Combine(dir, "public-key.xml"), pub);
             Console.WriteLine("已生成：" + Path.GetFullPath(dir));
             Console.WriteLine("公钥指纹：" + UpdateCrypto.Fingerprint(pub));
-            Console.WriteLine("把 public-key.xml 的内容粘贴进 src/OpenLauncher/Branding.cs 的 TrustedKeys；private-key.xml 离线保存好、多备份，不要提交到仓库。");
+            Console.WriteLine("把 public-key.xml 的内容粘贴进 src/SquidLauncher/Branding.cs 的 TrustedKeys；private-key.xml 离线保存好、多备份，不要提交到仓库。");
             return 0;
         }
 
@@ -118,7 +118,7 @@ namespace OpenLauncher.Release
             using (var a = SHA256.Create()) sha = string.Concat(a.ComputeHash(bytes).Select(b => b.ToString("x2")));
 
             var payload = JNode.Obj()
-                .Set("app", "OpenLauncher")
+                .Set("app", "SquidLauncher")
                 .Set("version", version)
                 .Set("published", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))
                 .Set("notes", One(o, "notes", false) is string n ? File.ReadAllText(n, Encoding.UTF8) : "")

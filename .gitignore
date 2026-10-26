@@ -6,11 +6,11 @@ obj/
 *.user
 *.suo
 
-# 在仓库根目录直接运行时生成的数据（便携模式在 exe 旁边建 OpenLauncher/ 和 .minecraft/）
-/OpenLauncher/
+# 在仓库根目录直接运行时生成的数据（便携模式在 exe 旁边建 SquidLauncher/ 和 .minecraft/）
+/SquidLauncher/
 /.minecraft/
 
-# cubiomes 引擎由 tools/build-cubiomes.ps1 生成；真正被打包的是 src/OpenLauncher/Assets/cubiomes.dll
+# cubiomes 引擎由 tools/build-cubiomes.ps1 生成；真正被打包的是 src/SquidLauncher/Assets/cubiomes.dll
 /release/*
 !/release/update.json
 !/release/notes.md

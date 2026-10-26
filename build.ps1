@@ -1,4 +1,4 @@
-﻿# 一键编译发布版：输出 dist\OpenLauncher.exe（单文件，Win10/11 自带 .NET Framework 4.8，双击即用）
+﻿# 一键编译发布版：输出 dist\SquidLauncher.exe（单文件，Win10/11 自带 .NET Framework 4.8，双击即用）
 # 需要 .NET SDK 8+（https://dotnet.microsoft.com/download），不需要 Visual Studio。
 $ErrorActionPreference = 'Stop'
 # 点来源（. .\build.ps1）时 $MyInvocation.MyCommand.Path 可能为空，优先用 $PSScriptRoot。
@@ -10,11 +10,11 @@ $dotnet = (Get-Command dotnet -ErrorAction SilentlyContinue).Source
 if (-not $dotnet -and (Test-Path "$env:USERPROFILE\.dotnet\dotnet.exe")) { $dotnet = "$env:USERPROFILE\.dotnet\dotnet.exe" }
 if (-not $dotnet) { throw '找不到 dotnet，请先安装 .NET SDK' }
 
-$proj = Join-Path $root 'src\OpenLauncher\OpenLauncher.csproj'
-$objDir = Join-Path $root 'src\OpenLauncher\obj'
+$proj = Join-Path $root 'src\SquidLauncher\SquidLauncher.csproj'
+$objDir = Join-Path $root 'src\SquidLauncher\obj'
 
 function Invoke-Compile {
-    $log = Join-Path $env:TEMP 'openlauncher-build.log'
+    $log = Join-Path $env:TEMP 'squidlauncher-build.log'
     # 原生命令的 stderr 在 EAP=Stop 下会当异常抛，这里临时放宽。
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
@@ -44,11 +44,16 @@ if ($result.Code -ne 0) {
 
 $dist = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force $dist | Out-Null
-Copy-Item "$root\src\OpenLauncher\bin\Release\OpenLauncher.exe" $dist -Force
-# App.config 里的长路径开关已在程序启动时用代码设置，config 文件可有可无
-Copy-Item "$root\src\OpenLauncher\bin\Release\OpenLauncher.exe.config" $dist -Force
+Copy-Item "$root\src\SquidLauncher\bin\Release\SquidLauncher.exe" $dist -Force
 
-$exe = Get-Item "$dist\OpenLauncher.exe"
+# 不再生成 SquidLauncher.exe.config：它原来的三块内容都已写在代码里
+#   · 长路径开关  → App 的静态构造器 AppContext.SetSwitch
+#   · 并发连接 256 → Http 的静态构造器 ServicePointManager.DefaultConnectionLimit
+#   · supportedRuntime → 编译目标已是 net48，Win10/11 自带
+# 清掉旧版本残留的那份，避免新旧同时跑时行为不一致
+Remove-Item "$dist\SquidLauncher.exe.config" -Force -ErrorAction SilentlyContinue
+
+$exe = Get-Item "$dist\SquidLauncher.exe"
 $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
 "已输出 $($exe.FullName)"
 "大小 $([math]::Round($exe.Length / 1KB)) KB   SHA-256 $hash"

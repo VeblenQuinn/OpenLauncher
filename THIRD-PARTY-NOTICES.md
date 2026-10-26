@@ -1,13 +1,13 @@
 # 第三方组件与许可
 
 本项目自身以 GPL-3.0-only 发布（见 [LICENSE](LICENSE)）。以下是随本项目一起分发的第三方
-组件及其许可。分发编译产物（`OpenLauncher.exe`）时请一并保留本文件。
+组件及其许可。分发编译产物（`SquidLauncher.exe`）时请一并保留本文件。
 
 ---
 
 ## cubiomes
 
-- 文件：`src/OpenLauncher/Assets/cubiomes.dll`（编译进 exe 的嵌入资源）
+- 文件：`src/SquidLauncher/Assets/cubiomes.dll`（编译进 exe 的嵌入资源）
 - 用途：种子地图的世界生成模拟（群系、结构位置）
 - 来源：上游 [Cubitect/cubiomes](https://github.com/Cubitect/cubiomes)（MIT）的社区分支
   [Conflux-Union/cubiomes](https://github.com/Conflux-Union/cubiomes)，

@@ -120,6 +120,6 @@ if (Test-Path $verify) {
 Write-Host ''
 Write-Host '接下来：'
 Write-Host "  1) 把 dll 上传到 Branding.EngineUrl 指向的地址"
-Write-Host "  2) 把下面的哈希填进 src/OpenLauncher/Branding.cs 的 EngineSha256"
+Write-Host "  2) 把下面的哈希填进 src/SquidLauncher/Branding.cs 的 EngineSha256"
 Write-Host "     $sha"
 Write-Host '  3) 本地试玩：直接复制到 <数据目录>\tools\cubiomes.dll'
