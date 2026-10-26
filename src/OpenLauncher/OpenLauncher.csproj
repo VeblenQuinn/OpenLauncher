@@ -58,7 +58,7 @@
       0.1.44 删掉手柄支持（Gamepad / GamepadLatch / GamepadNavigation 三个文件，约 37KB）：去掉焦点框、按键提示条、XInput 轮询与相关设置项（设置页的「手柄」分段、input.gamepad / input.gamepadDeadzone），启动也不再装载 xinput1_4.dll。同时移除「输出手柄可选控件」「连续按方向键」两个手柄诊断探针。窗口不再留第三行给提示条
       0.1.45 种子地图的结构详情卡：传送指令 Y 值改用 ~（保持当前高度），不再写死 64，避免传送到地下或空中；去掉很少用得上的「定位到这里」按钮，改为「复制指令」直接复制 /tp X ~ Z
     -->
-    <Version>0.1.45</Version>
+    <Version>0.1.46</Version>
     <Product>OpenLauncher</Product>
     <Description>去中心化的 Minecraft 启动器</Description>
     <!--
