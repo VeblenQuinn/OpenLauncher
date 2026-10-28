@@ -34,6 +34,59 @@
             </Grid>
         </Border>
 
+        <Border x:Name="DepPanel" DockPanel.Dock="Top" Style="{StaticResource CardBox}" Visibility="Collapsed" Margin="0,0,0,8">
+            <StackPanel>
+                <DockPanel LastChildFill="False">
+                    <TextBlock x:Name="DepTitle" Text="前置 Mod" Style="{StaticResource H2}" Margin="0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="DepHint" Style="{StaticResource Sub}" VerticalAlignment="Center" Margin="10,2,0,0"/>
+                </DockPanel>
+                <ScrollViewer MaxHeight="168" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,0">
+                    <ItemsControl x:Name="DepList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="8" Padding="8,9" Margin="0,0,0,2" Cursor="Hand" Focusable="True"
+                                        MouseLeftButtonUp="DepRow_Click" KeyDown="DepRow_KeyDown">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource AccentSoft}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource AccentSoft}"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="8" Background="{DynamicResource AccentSoft}" ClipToBounds="True" VerticalAlignment="Center">
+                                            <Image ui:RemoteImage.Url="{Binding IconUrl}" Stretch="UniformToFill"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="10,0,4,0" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Text}"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="360" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Note}" Style="{StaticResource Sub}" FontSize="11" Margin="8,1,0,0" VerticalAlignment="Center"
+                                                           Visibility="{Binding ShowNote, Converter={StaticResource BoolVisFile}}"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Desc}" Style="{StaticResource Sub}" FontSize="11.5" Margin="0,1,0,0"
+                                                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                                       Visibility="{Binding ShowDesc, Converter={StaticResource BoolVisFile}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </StackPanel>
+        </Border>
+
         <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
             <TextBlock x:Name="FilesTitle" Text="选择要下载的文件" Style="{StaticResource H2}" VerticalAlignment="Center" Margin="0"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -41,35 +94,6 @@
                 <TextBlock x:Name="TargetInfo" Style="{StaticResource Sub}" VerticalAlignment="Center"/>
             </StackPanel>
         </Grid>
-
-        <Border x:Name="DepPanel" DockPanel.Dock="Top" Style="{StaticResource CardBox}" Visibility="Collapsed" Margin="0,0,0,8">
-            <StackPanel>
-                <DockPanel LastChildFill="False">
-                    <TextBlock x:Name="DepTitle" Text="前置 Mod" Style="{StaticResource H2}" Margin="0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="DepHint" Style="{StaticResource Sub}" VerticalAlignment="Center" Margin="10,2,0,0"/>
-                </DockPanel>
-                <ItemsControl x:Name="DepList" Margin="0,8,0,0">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{DynamicResource AccentSoft}" CornerRadius="6" Padding="8,3,6,3" Margin="0,0,8,8">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Title}" FontSize="12" Foreground="{DynamicResource Text}" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Note}" Style="{StaticResource Sub}" FontSize="11" Margin="6,1,0,0" VerticalAlignment="Center"
-                                               Visibility="{Binding ShowNote, Converter={StaticResource BoolVisFile}}"/>
-                                    <Button Content="跳转" Style="{StaticResource Ghost}" Padding="7,1" FontSize="11" Margin="6,0,0,0"
-                                            Click="DepJump_Click" ToolTip="打开这个前置的详情页"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </Border>
 
         <Grid>
             <ListBox x:Name="Files" Style="{StaticResource CardList}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.ScrollUnit="Pixel"
@@ -102,7 +126,35 @@
                                     <Run Text="{Binding SizeText, Mode=OneWay}"/>
                                 </TextBlock>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="下载" Style="{StaticResource Primary}" Padding="16,6" VerticalAlignment="Center" Click="Download_Click"/>
+                            <!-- 一个整体：左边下载，右边下拉箭头，中间一条竖线隔开 -->
+                            <Border Grid.Column="1" Background="{DynamicResource Accent}" CornerRadius="7" Height="30" VerticalAlignment="Center">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition Width="30"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="下载" Style="{StaticResource SplitLeft}" Click="Download_Click"/>
+                                    <Border Grid.Column="1" Background="#4DFFFFFF" Margin="0,6"/>
+                                    <!-- 下载旁边的下拉：目前只放「另存为」（不装进版本，直接存到磁盘） -->
+                                    <Button Grid.Column="2" Style="{StaticResource SplitRight}"
+                                            Click="DownloadMenu_Click" PreviewMouseLeftButtonDown="DownloadMenu_PreviewMouseDown"
+                                            ToolTip="更多下载方式">
+                                        <!-- 箭头：菜单打开时绕自己中心转到朝上（模板里的变换是冻结的，动画在代码里现建一个） -->
+                                        <TextBlock Text="&#xE70D;" FontFamily="{StaticResource Icons}" FontSize="10"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                            <TextBlock.RenderTransform>
+                                                <RotateTransform Angle="0"/>
+                                            </TextBlock.RenderTransform>
+                                        </TextBlock>
+                                        <Button.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="另存为…" Click="SaveAs_Click"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                </Grid>
+                            </Border>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

@@ -508,8 +508,9 @@ namespace SquidLauncher
                                 if (plan.Missing.Count > 0) sb.AppendLine("    缺失：" + string.Join("、", plan.Missing));
                                 if (plan.Any)
                                 {
-                                    var body = ProjectPage.DepPromptBody(plan);
-                                    sb.AppendLine($"    询问正文元素数={(body as System.Windows.Controls.Panel)?.Children.Count}");
+                                    var picks = new System.Collections.Generic.List<ProjectPage.DepPick>();
+                                    var body = ProjectPage.DepPickBody(plan, null, picks);
+                                    sb.AppendLine($"    询问正文元素数={(body as System.Windows.Controls.Panel)?.Children.Count} 复选框行数={picks.Count}");
                                 }
                             }
                             catch (Exception ex) { sb.AppendLine($"  异常：{ex.GetType().Name} {ex.Message}"); }
@@ -528,14 +529,15 @@ namespace SquidLauncher
                             var plan = await ContentService.PlanDependenciesAsync(best, tmp, inst.McVersion, loader, CancellationToken.None);
                             sb.AppendLine($"  计划下载={plan.Files.Count} 已装跳过={plan.Skipped.Count} 找不到={plan.Missing.Count}");
                             for (int i = 0; i < plan.Files.Count; i++) sb.AppendLine($"    + {plan.Names[i]}  [{plan.Files[i].FileName}]");
-                            var body = ProjectPage.DepPromptBody(plan);
-                            sb.AppendLine($"  询问正文元素数={(body as System.Windows.Controls.Panel)?.Children.Count}（期望 ≥2）");
+                            var picks2 = new System.Collections.Generic.List<ProjectPage.DepPick>();
+                            var body = ProjectPage.DepPickBody(plan, null, picks2);
+                            sb.AppendLine($"  询问正文元素数={(body as System.Windows.Controls.Panel)?.Children.Count} 复选框行数={picks2.Count}（期望 ≥2）");
                             try { System.IO.Directory.Delete(tmp, true); } catch { }
                         }
                         catch (Exception ex) { sb.AppendLine("  空目录解析异常：" + ex); }
                         Flush();
 
-                        sb.AppendLine("=== 详情页 UI（选中一行应弹出前置面板） ===");
+                        sb.AppendLine("=== 详情页 UI（不点任何东西也该有前置面板） ===");
                         try
                         {
                             var proj = await ContentService.Modrinth.GetProjectAsync("ae2", CancellationToken.None);
@@ -715,7 +717,8 @@ namespace SquidLauncher
         {
             UpdateTaskBadge();
             if (t.Title.StartsWith("启动 ")) return; // 启动页自己会提示（窗口出现 / 失败对话框）
-            if (t.State == TaskState.Done) Toast($"{t.Title}：完成", ToastKind.Ok);
+            // 「另存」自己会在完成时提示保存到哪儿（带完整路径），别再被通用提示盖掉
+            if (t.State == TaskState.Done && !t.Title.StartsWith("另存 ")) Toast($"{t.Title}：完成", ToastKind.Ok);
             else if (t.State == TaskState.Failed) Toast($"{t.Title}：失败（点右上角任务查看原因）", ToastKind.Error);
         }
 

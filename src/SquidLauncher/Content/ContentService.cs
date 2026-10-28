@@ -71,6 +71,12 @@ namespace SquidLauncher.Content
         }
 
         /// <summary>批量取项目信息（两个源都支持），用于拿 slug / 标题</summary>
+        /// <summary>取单个项目（含作者），用于从前置行直接打开详情页</summary>
+        public static Task<ContentProject> GetProjectAsync(ContentSource s, string id, CancellationToken ct)
+            => s == ContentSource.CurseForge
+                ? _curseForge.GetProjectAsync(id, ct)
+                : _modrinth.GetProjectAsync(id, ct);
+
         public static Task<List<ContentProject>> GetProjectsAsync(ContentSource s, IEnumerable<string> ids, CancellationToken ct)
             => s == ContentSource.CurseForge
                 ? _curseForge.GetProjectsAsync(ids, ct)
@@ -132,14 +138,17 @@ namespace SquidLauncher.Content
 
         // ---------------- 安装 ----------------
 
-        public static async Task<List<string>> InstallAsync(ContentFile file, string targetDir, bool withDependencies, string gameVersion, string loader, LauncherTask task)
-            => (await InstallWithReportAsync(file, targetDir, withDependencies, gameVersion, loader, task).ConfigureAwait(false)).Installed;
+        public static async Task<List<string>> InstallAsync(ContentFile file, string targetDir, bool withDependencies, string gameVersion, string loader, LauncherTask task,
+            IReadOnlyList<ContentFile> dependencies = null)
+            => (await InstallWithReportAsync(file, targetDir, withDependencies, gameVersion, loader, task, dependencies).ConfigureAwait(false)).Installed;
 
         /// <summary>
         /// 下载文件到 targetDir。withDependencies 时递归解析必需前置（同游戏版本 + 加载器），已装的跳过。
+        /// dependencies 不为 null 时不再自己解析，直接下载这一份（界面让用户勾好的）；传空列表 = 一个前置都不装。
         /// 同一项目的旧文件会在新文件下载成功后移到回收站。
         /// </summary>
-        public static async Task<InstallReport> InstallWithReportAsync(ContentFile file, string targetDir, bool withDependencies, string gameVersion, string loader, LauncherTask task)
+        public static async Task<InstallReport> InstallWithReportAsync(ContentFile file, string targetDir, bool withDependencies, string gameVersion, string loader, LauncherTask task,
+            IReadOnlyList<ContentFile> dependencies = null)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (string.IsNullOrEmpty(targetDir)) throw new ArgumentNullException(nameof(targetDir));
@@ -159,7 +168,14 @@ namespace SquidLauncher.Content
             var skipped = new List<(ContentSource src, string id, string name)>();
             var missing = new List<(ContentSource src, string id, string name)>();
             var titles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (withDependencies && file.Dependencies.Any(d => d.Required))
+            if (dependencies != null)
+            {
+                // 用户在「这个 Mod 有前置」里勾好了要哪几个，照着这份清单下载，不再重复解析
+                foreach (var d in dependencies)
+                    if (d != null && !plan.Any(x => string.Equals(x.FileName, d.FileName, StringComparison.OrdinalIgnoreCase)))
+                        plan.Add(d);
+            }
+            else if (withDependencies && file.Dependencies.Any(d => d.Required))
             {
                 task?.Report(-1, "正在解析前置…");
                 await ResolveDependenciesAsync(file, targetDir, index, gameVersion, loader, plan, skipped, missing, titles, ct).ConfigureAwait(false);

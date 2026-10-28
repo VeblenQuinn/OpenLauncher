@@ -69,6 +69,59 @@ namespace SquidLauncher.UI
 
         public static TextBlock Text(string text) => new TextBlock { Text = text, Style = S("Body"), TextWrapping = TextWrapping.Wrap };
 
+        /// <summary>
+        /// 盖在内容上的「正在进行」弹窗（卡片背景 + 进度条 + 一行说明）。
+        /// 用 using 包住要等的事，结束时自动关掉；中途可以用 Text 换掉那行说明。
+        /// </summary>
+        public static BusyHandle Busy(string title, string text = null, double width = 360)
+        {
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = title, Style = S("H2"), TextWrapping = TextWrapping.Wrap });
+            var line = new TextBlock
+            {
+                Text = text ?? "",
+                Style = S("Sub"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 6, 0, 0),
+                Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible,
+            };
+            panel.Children.Add(line);
+            panel.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 4, Margin = new Thickness(0, 16, 0, 0) });
+            var card = new Border
+            {
+                Background = B("Card"),
+                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(24, 20, 24, 20),
+                Width = width,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 30, ShadowDepth = 4, Opacity = 0.25 },
+            };
+            card.Child = panel;
+            MainWindow.Current.ShowDialogContent(card);
+            return new BusyHandle(card, line);
+        }
+
+        /// <summary>Busy 开着的那个卡片，Dispose 时关掉</summary>
+        public sealed class BusyHandle : IDisposable
+        {
+            readonly FrameworkElement _card;
+            readonly TextBlock _line;
+
+            internal BusyHandle(FrameworkElement card, TextBlock line) { _card = card; _line = line; }
+
+            /// <summary>换掉那句说明（比如「正在查询…」→「正在获取图标…」）</summary>
+            public string Text
+            {
+                set
+                {
+                    if (_line == null) return;
+                    _line.Text = value ?? "";
+                    _line.Visibility = string.IsNullOrEmpty(value) ? Visibility.Collapsed : Visibility.Visible;
+                }
+            }
+
+            public void Dispose() => MainWindow.Current?.CloseDialogContent(_card);
+        }
+
         public static Task Alert(string title, string text) => ShowAsync(title, Text(text), new[] { "知道了" });
 
         public static async Task<bool> Confirm(string title, string text, string ok = "确定", string cancel = "取消", bool danger = false)

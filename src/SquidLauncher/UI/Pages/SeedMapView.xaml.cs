@@ -59,22 +59,25 @@ namespace SquidLauncher.UI.Pages
         /// 编号来自由社区维护的 cubiomes 分支（xpple / Conflux-Union）的 biomes.h：
         /// 上游只到 MC_1_21_WD，这个分支往后加了 1.21.5 / 1.21.6 / 1.21.9 / 1.21.11 / 26.1~26.3。
         /// 换引擎时这里要跟着对一遍。
+        ///
+        /// 生成结果逐位相同的版本合并成一项（用组内最新的枚举值渲染），标签写成版本区间。
+        /// 判定依据是实测对拍：同组版本在 3 个维度 × 4 档缩放 × 8 个种子上的群系图、
+        /// ±32768 方块内的 24 类结构、128 个要塞全部逐位相同。
+        /// 26.2 / 26.3 / 1.21.4 各自新增了群系（sulfur_caves / dappled_forest / pale_garden），
+        /// 实测确实不同，所以不能并进去。
+        /// mc 是渲染用的枚举值（组内最新），mcMin 是组内最旧的那个——引擎太旧时退化到它。
         /// </summary>
-        static readonly (string name, int mc)[] Versions =
+        static readonly (string label, int mc, int mcMin, string members)[] Versions =
         {
-            ("26.3",                 35),
-            ("26.2",                 34),
-            ("26.1",                 33),
-            ("1.21.11",              32),
-            ("1.21.9",               31),
-            ("1.21.6",               30),
-            ("1.21.5",               29),
-            ("1.21.4 (Winter Drop)", 28),
-            ("1.21.3",               27),
-            ("1.21.1",               26),
-            ("1.20.6",               25),
-            ("1.19.4",               24),
-            ("1.18.2",               22),
+            ("26.3",                 35, 35, "26.3"),
+            ("26.2",                 34, 34, "26.2"),
+            ("1.21.9–26.1",          33, 31, "1.21.9 / 1.21.11 / 26.1"),
+            ("1.21.5–1.21.6",        30, 29, "1.21.5 / 1.21.6"),
+            ("1.21.4 (Winter Drop)", 28, 28, "1.21.4"),
+            ("1.21.1–1.21.3",        27, 26, "1.21.1 / 1.21.3"),
+            ("1.20.6",               25, 25, "1.20.6"),
+            ("1.19.4",               24, 24, "1.19.4"),
+            ("1.18.2",               22, 22, "1.18.2"),
         };
 
         /// <summary>最细：每像素 4 方块（再细就没意义，cubiomes 也没法更准）</summary>
@@ -197,6 +200,8 @@ namespace SquidLauncher.UI.Pages
         /// <summary>引擎是不是已经装好（内置解出或旧的下载）</summary>
         bool _provisioning;
         bool _versionSynced;
+        /// <summary>自动校正版本下拉时压住 SelectionChanged 里的重绘，由校正逻辑统一重绘一次</summary>
+        bool _suppressVersionChange;
         /// <summary>升级提示只问一次，别每次进页都弹</summary>
         bool _upgradeAsked;
         DispatcherTimer _progressTimer;
@@ -227,13 +232,18 @@ namespace SquidLauncher.UI.Pages
         {
             if (VersionBox.Items.Count == 0)
             {
-                foreach (var v in Versions) VersionBox.Items.Add(v.name);
+                foreach (var v in Versions) VersionBox.Items.Add(v.label);
                 VersionBox.SelectedIndex = 0;          // 26.3
 
                 VersionBox.SelectionChanged += (_, __) =>
                 {
                     int i = VersionBox.SelectedIndex;
                     if (i < 0 || i >= Versions.Length) return;
+                    // 合并项悬停时说明它覆盖哪些版本，单项就不用重复一遍
+                    VersionBox.ToolTip = Versions[i].members.IndexOf('/') >= 0
+                        ? Versions[i].members + " 的群系与结构生成完全一致"
+                        : null;
+                    if (_suppressVersionChange) return;
                     _mc = Versions[i].mc;
                     Render();
                 };
@@ -608,13 +618,18 @@ namespace SquidLauncher.UI.Pages
             if (newest < 0) return;
             int idx = -1;
             for (int i = 0; i < Versions.Length; i++)
-                if (Versions[i].mc <= newest) { idx = i; break; }
+                if (Versions[i].mcMin <= newest) { idx = i; break; }
             if (idx > 0 && idx < Versions.Length)
             {
+                // 合并项自身可能比引擎新，那就退化到组内最旧的枚举值（同组生成结果一致）
+                int mc = newest >= Versions[idx].mc ? Versions[idx].mc : Versions[idx].mcMin;
+                _suppressVersionChange = true;
                 VersionBox.SelectedIndex = idx;
-                _mc = Versions[idx].mc;
+                _suppressVersionChange = false;
+                _mc = mc;
                 // 状态条上不再显示引擎信息，这种自动校正只记日志
-                Log.Info($"种子地图：引擎最高支持到 {Versions[idx].name}，版本下拉已自动切换");
+                Log.Info($"种子地图：引擎最高支持到 {Versions[idx].label}（{Versions[idx].members}），版本下拉已自动切换");
+                Render();
             }
         }
 
@@ -1009,16 +1024,20 @@ namespace SquidLauncher.UI.Pages
 
                 var box = new CheckBox
                 {
-                    Content = k.Name,
                     IsChecked = _structOn.Contains(k.Key),
-                    // 单列排列，行距收一点，不然十几个结构要滚很久
-                    Margin = new Thickness(0, 1, 0, 1),
-                    HorizontalAlignment = HorizontalAlignment.Left,
+                    // 两列排列（每列约 105px），行距收一点；撑满整格，长名字才能按省略号截断。
+                    // 行距 1px（行高 22）而不是上下各 1px：主世界 10 行正好塞进 229px 的列表区，
+                    // 多 1px 就会冒出竖滚动条
+                    Margin = new Thickness(0, 0, 0, 1),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
                     VerticalContentAlignment = VerticalAlignment.Center,
                     ToolTip = k.Name + "（" + (k.IsNether ? "下界" : k.IsEnd ? "末地" : "主世界") + "）",
                 };
                 // 用 Tag 记住种类；Key 可能重复显示名（废弃传送门在两个维度都有）
                 box.Tag = k.Key;
+                // Content 换成 Grid 之后，UIA 推不出名字了（读屏和自动化脚本都拿不到），显式补上
+                System.Windows.Automation.AutomationProperties.SetName(box, k.Name);
                 // 前景显式绑主题画刷：默认是 SystemColors.ControlTextBrush（固定黑），
                 // 暗色模式下勾选框和文字都会糊在黑底上。
                 box.SetResourceReference(ForegroundProperty, "Text");
@@ -1039,11 +1058,24 @@ namespace SquidLauncher.UI.Pages
                 // 文字必须显式绑到主题画刷：TextBlock 的默认前景是
                 // SystemColors.ControlTextBrush（固定黑），不会跟着暗色模式变，
                 // 也不会从 CheckBox 继承。
-                var label = new TextBlock { Text = k.Name, VerticalAlignment = VerticalAlignment.Center };
+                var label = new TextBlock
+                {
+                    Text = k.Name,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    // 两列后每格只有约 105px，「掠夺者前哨」这类长名字放不下时按省略号截，
+                    // 完整名字还在 ToolTip 里，别让它换行把行高撑成 40px
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    Margin = new Thickness(0, 0, 4, 0),
+                };
                 label.SetResourceReference(TextBlock.ForegroundProperty, "Text");
 
-                var panel = new StackPanel { Orientation = Orientation.Horizontal };
+                // 小方块和名字用 Grid 排（不是 StackPanel）：Grid 的第二列是星号宽，
+                // 文字才能被约束住、TextTrimming 才会生效
+                var panel = new Grid();
+                panel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                panel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 panel.Children.Add(dot);
+                Grid.SetColumn(label, 1);
                 panel.Children.Add(label);
                 box.Content = panel;
 
@@ -1105,10 +1137,13 @@ namespace SquidLauncher.UI.Pages
             if (string.IsNullOrEmpty(text))
             {
                 StructHint.Visibility = Visibility.Collapsed;
+                // 提示挂在地图右上角的卡片里，卡片不藏起来就会剩一个空框
+                if (StructHintBox != null) StructHintBox.Visibility = Visibility.Collapsed;
                 return;
             }
             StructHint.Text = text;
             StructHint.Visibility = Visibility.Visible;
+            if (StructHintBox != null) StructHintBox.Visibility = Visibility.Visible;
         }
 
         /// <summary>当前维度里勾上的结构种类</summary>

@@ -12,14 +12,17 @@
              ScrollViewer 用 handledEventsToo 注册了滚轮类处理器，会无视 e.Handled，
              所以只要嵌套就必然「滚内层、外层跟着滚」，挂 handler 也拦不住。
              改成 Grid 分行后，结构列表那一行是唯一可滚动的区域，从结构上不可能冲突。 -->
-        <Border x:Name="SidePanel" Grid.Column="0" Width="236" Background="{DynamicResource Card}"
+        <Border x:Name="SidePanel" Grid.Column="0" Width="256" Background="{DynamicResource Card}"
                 BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
             <Grid x:Name="SideGrid" Margin="14,14,14,14">
+                <!-- 行数必须和下面的子元素一一对应（0..6 共 7 行）。以前多留了一行 Auto，
+                     结构列表就落进 Auto 行里、按内容撑到 380px 高，把「重新生成 / 回到原点」
+                     一路顶到窗口外面去；星号行反而空着。 -->
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <!-- 种子 -->
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <!-- 游戏版本 + 维度并排 -->
                     <RowDefinition Height="Auto"/>
                     <!-- 前往坐标 -->
                     <RowDefinition Height="Auto"/>
@@ -38,28 +41,34 @@
 
                 <StackPanel Grid.Row="1">
                     <TextBlock Text="种子" Style="{StaticResource Sub}" Margin="0,0,0,4"/>
-                    <TextBox x:Name="SeedBox" Text="0" Margin="0,0,0,3"
+                    <!-- 提示放在悬停里：常驻那一行会白吃掉两列结构列表需要的高度 -->
+                    <TextBox x:Name="SeedBox" Text="0" Margin="0,0,0,8"
                              ToolTip="支持数字或文本（文本按 Java 字符串哈希转换）"/>
-                    <TextBlock Style="{StaticResource Sub}" FontSize="11"
-                               Text="数字或文本（文本按 Java 哈希）" TextWrapping="Wrap" Margin="0,0,0,8"/>
                 </StackPanel>
 
-                <StackPanel Grid.Row="2">
-                    <TextBlock Text="游戏版本" Style="{StaticResource Sub}" Margin="0,0,0,4"/>
-                    <ComboBox x:Name="VersionBox" Margin="0,0,0,8"/>
-                </StackPanel>
-
-                <StackPanel Grid.Row="3">
-                    <TextBlock Text="维度" Style="{StaticResource Sub}" Margin="0,0,0,4"/>
-                    <ComboBox x:Name="DimBox" Margin="0,0,0,8">
-                        <ComboBoxItem Content="主世界" IsSelected="True"/>
-                        <ComboBoxItem Content="下界"/>
-                        <ComboBoxItem Content="末地"/>
-                    </ComboBox>
-                </StackPanel>
+                <!-- 版本和维度并排：竖着排要多占约 60px，620 高的窗口就不够放 19 个结构了 -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.45*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="游戏版本" Style="{StaticResource Sub}" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="VersionBox" Margin="0,0,0,8"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="维度" Style="{StaticResource Sub}" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="DimBox" Margin="0,0,0,8">
+                            <ComboBoxItem Content="主世界" IsSelected="True"/>
+                            <ComboBoxItem Content="下界"/>
+                            <ComboBoxItem Content="末地"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
 
                 <!-- 前往坐标：X/Z 两个数即可；贴 F3 里的「100 64 200」也能用（中间的 Y 自动忽略） -->
-                <DockPanel Grid.Row="4" Margin="0,0,0,6">
+                <DockPanel Grid.Row="3" Margin="0,0,0,6">
                     <TextBlock Text="坐标" Style="{StaticResource Sub}" VerticalAlignment="Center"
                                Margin="0,0,6,0"/>
                     <Button Content="前往" Click="Goto_Click" DockPanel.Dock="Right"
@@ -70,31 +79,31 @@
                 </DockPanel>
 
                 <!-- 结构筛选：勾上的才会在地图上标出来 -->
-                <DockPanel Grid.Row="5" Margin="0,0,0,4">
+                <DockPanel Grid.Row="4" Margin="0,0,0,4">
                     <CheckBox x:Name="StructAll" Content="结构标记" DockPanel.Dock="Right"
                               VerticalAlignment="Center" Click="StructAll_Click"
                               Foreground="{DynamicResource Text}"/>
                     <TextBlock Text="结构" Style="{StaticResource Sub}" VerticalAlignment="Center"/>
                 </DockPanel>
 
-                <Border Grid.Row="6" Background="{DynamicResource LogBg}" CornerRadius="6" Padding="8,7" Margin="0,0,0,10">
-                    <DockPanel>
-                        <TextBlock x:Name="StructHint" DockPanel.Dock="Bottom" Style="{StaticResource Sub}" FontSize="11"
-                                   TextWrapping="Wrap" Margin="0,6,0,0" Visibility="Collapsed"/>
-                        <!-- 单列显示：结构名长短不一，两列排列时会参差不齐，而且窄列里
-                             「掠夺者前哨」「埋藏的宝藏」这类长名字会被挤到换行。
-                             高度由所在 Grid 行给，这是整个左栏唯一的滚动区。 -->
-                        <ScrollViewer x:Name="StructScroll" VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel x:Name="StructList"/>
-                        </ScrollViewer>
-                    </DockPanel>
+                <Border Grid.Row="5" Background="{DynamicResource LogBg}" CornerRadius="6" Padding="8,7" Margin="0,0,0,10">
+                    <!-- 两列排列：主世界 19 个结构，单列每行 20px 要 380px，620 高的窗口
+                         根本放不下（会被星星号行压缩、只能滚动）。两列 10 行只要 200px，
+                         默认窗口尺寸就能一眼看全；行高和列宽对齐，不会参差不齐。
+                         高度由所在 Grid 行给，这是整个左栏唯一的滚动区（窗口再矮才滚）。 -->
+                    <ScrollViewer x:Name="StructScroll" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <!-- 顶部对齐：UniformGrid 默认会把行摊满整个高度，下界只有 3 项时
+                             两个格子会被拉成 100 多像素高，项与项之间空出老大一截 -->
+                        <UniformGrid x:Name="StructList" Columns="2" VerticalAlignment="Top"/>
+                    </ScrollViewer>
                 </Border>
 
-                <StackPanel Grid.Row="7" Margin="0,0,0,2">
-                    <Button Content="重新生成" Click="Render_Click" Margin="0,0,0,5" HorizontalAlignment="Stretch"/>
-                    <Button Content="回到原点" Click="Home_Click" HorizontalAlignment="Stretch"/>
-                </StackPanel>
+                <!-- 两个按钮并排：竖着排要多占 36px -->
+                <UniformGrid Grid.Row="6" Columns="2" Margin="0,0,0,2">
+                    <Button Content="重新生成" Click="Render_Click" Margin="0,0,3,0" HorizontalAlignment="Stretch"/>
+                    <Button Content="回到原点" Click="Home_Click" Margin="3,0,0,0" HorizontalAlignment="Stretch"/>
+                </UniformGrid>
             </Grid>
         </Border>
 
@@ -212,11 +221,18 @@
                     </WrapPanel>
                 </StackPanel>
             </Border>
-            <!-- 操作提示放右上角：底部留给状态条 -->
-            <TextBlock x:Name="HintText" Text="拖动平移 · 滚轮缩放"
-                       Style="{StaticResource Sub}" FontSize="11"
-                       HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0"
-                       Background="{DynamicResource ScrimSoft}" Padding="7,3"/>
+            <!-- 结构统计放地图右上角：底部留给状态条，左栏留给结构列表。
+                 用和底部状态条一样的卡片底（ScrimSoft 半透明太淡，压在亮色群系上根本看不清）。
+                 不参与命中测试，挡住的地方照样能拖动地图。 -->
+            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0"
+                        IsHitTestVisible="False">
+                <Border x:Name="StructHintBox" Background="{DynamicResource Card}" Opacity="0.94"
+                        CornerRadius="6" BorderBrush="{DynamicResource Line}" BorderThickness="1"
+                        Padding="9,4" HorizontalAlignment="Right" Visibility="Collapsed">
+                    <TextBlock x:Name="StructHint" Style="{StaticResource Sub}" FontSize="11"
+                               TextWrapping="Wrap" MaxWidth="320" TextAlignment="Right"/>
+                </Border>
+            </StackPanel>
         </Grid>
     </Grid>
 </UserControl>

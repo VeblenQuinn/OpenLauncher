@@ -23,6 +23,8 @@ namespace SquidLauncher.UI.Pages
         int _offset, _total;
         bool _busy, _init, _suppress;
         Instance _target;
+        /// <summary>用户在「安装到」里选了「（无）」：不装进任何版本</summary>
+        bool _noTarget;
 
         Dictionary<string, InstalledItem> _installed;
         CancellationTokenSource _installedCts;
@@ -54,6 +56,7 @@ namespace SquidLauncher.UI.Pages
         public void SetTarget(Instance inst)
         {
             _target = inst;
+            if (inst != null) _noTarget = false;
             if (_init) ApplyTargetDefaults();
         }
 
@@ -84,23 +87,42 @@ namespace SquidLauncher.UI.Pages
 
         void RefreshTargets()
         {
-            var keep = _target?.Id ?? (Target.SelectedItem as ComboBoxItem)?.Tag as string ?? Settings.SelectedVersion;
+            var keep = _target?.Id;
+            if (string.IsNullOrEmpty(keep) && !_noTarget) keep = (Target.SelectedItem as ComboBoxItem)?.Tag as string;
+            if (string.IsNullOrEmpty(keep) && !_noTarget) keep = Settings.SelectedVersion;
             var old = _suppress;
             _suppress = true;
             Target.Items.Clear();
+            // 哨兵项：不装进任何版本（配合文件行的「另存为」用）
+            var none = new ComboBoxItem { Content = "（无）", Tag = "", ToolTip = "不安装到任何版本；下载时可以用「另存为」直接存文件" };
+            Target.Items.Add(none);
             foreach (var i in GameRepo.Current.ListInstances().Where(i => i.IsValid))
                 Target.Items.Add(new ComboBoxItem { Content = i.Id, Tag = i.Id, DataContext = i, ToolTip = i.Description });
-            Target.SelectedItem = Target.Items.Cast<ComboBoxItem>().FirstOrDefault(x => (string)x.Tag == keep) ?? (Target.Items.Count > 0 ? Target.Items[0] : null);
+            ComboBoxItem pick = null;
+            if (!_noTarget)
+                pick = Target.Items.Cast<ComboBoxItem>().FirstOrDefault(x => !string.IsNullOrEmpty((string)x.Tag) && (string)x.Tag == keep);
+            if (pick == null) pick = _noTarget ? none : Target.Items.Cast<ComboBoxItem>().FirstOrDefault(x => x != none) ?? none;
+            Target.SelectedItem = pick;
             _target = (Target.SelectedItem as ComboBoxItem)?.DataContext as Instance;
+            _noTarget = ReferenceEquals(Target.SelectedItem, none);
             _suppress = old;
         }
 
         /// <summary>按目标版本自动设置 MC 版本和加载器筛选</summary>
         void ApplyTargetDefaults()
         {
-            if (_target == null || _type == ContentType.Modpack) return;
+            if (_type == ContentType.Modpack) return;
             var old = _suppress;
             _suppress = true;
+            if (_target == null)
+            {
+                // 选了「（无）」：版本 / 加载器都回到「全部」，别继续按上一个版本筛
+                SelectTag(GameVersion, "");
+                SelectTag(Loader, "");
+                _suppress = old;
+                if (!old) _ = SearchAsync(true);
+                return;
+            }
             var mc = _target.McVersion;
             if (!GameVersion.Items.Cast<ComboBoxItem>().Any(i => (string)i.Tag == mc))
                 GameVersion.Items.Insert(1, new ComboBoxItem { Content = mc, Tag = mc });
@@ -132,6 +154,7 @@ namespace SquidLauncher.UI.Pages
         {
             if (_suppress) return;
             _target = (Target.SelectedItem as ComboBoxItem)?.DataContext as Instance;
+            _noTarget = _target == null;
             ApplyTargetDefaults();
             _ = RefreshInstalledAsync();
         }

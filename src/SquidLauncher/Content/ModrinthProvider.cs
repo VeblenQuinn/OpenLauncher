@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -238,26 +239,31 @@ namespace SquidLauncher.Content
             };
         }
 
+        /// <summary>项目 id → 作者名。同一个项目反复打开时不用再请求一次</summary>
+        static readonly ConcurrentDictionary<string, string> AuthorCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// 取"作者"：跟搜索结果保持一致，用团队里的 Project Lead（负责人）。
+        /// 以前先查 /v3/organization 拿组织名，既慢（多一次跨域请求）又和搜索页显示的人名对不上，已去掉。
+        /// </summary>
         static async Task<string> GetAuthorAsync(JNode project, CancellationToken ct)
         {
-            var org = project["organization"].Str;
-            if (!string.IsNullOrEmpty(org))
-            {
-                try
-                {
-                    var o = await GetAsync("/organization/" + Uri.EscapeDataString(org), ct, "https://api.modrinth.com/v3").ConfigureAwait(false);
-                    var name = o["name"].Str;
-                    if (!string.IsNullOrEmpty(name)) return name;
-                }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                catch { /* 退回团队成员 */ }
-            }
-            var members = await GetAsync("/project/" + Uri.EscapeDataString(project["id"].Str) + "/members", ct).ConfigureAwait(false);
-            JNode owner = null;
+            var id = project["id"].Str;
+            if (string.IsNullOrEmpty(id)) return null;
+            if (AuthorCache.TryGetValue(id, out var cached)) return cached;
+
+            var members = await GetAsync("/project/" + Uri.EscapeDataString(id) + "/members", ct).ConfigureAwait(false);
+            JNode lead = null, first = null;
             foreach (var m in members)
-                if (m["role"].Str == "Owner" || m["is_owner"].Bool) { owner = m; break; }
-            owner = owner ?? members[0];
-            return owner["user"]["username"].Str;
+            {
+                if (first == null) first = m;
+                var role = m["role"].Str ?? "";
+                if (role == "Project Lead" || role == "Owner" || m["is_owner"].Bool) { lead = m; break; }
+            }
+            var pick = lead ?? first;
+            var name = pick == null ? null : pick["user"]["username"].Str;
+            if (!string.IsNullOrEmpty(name)) AuthorCache[id] = name;
+            return name;
         }
 
         // ---------------- 文件 ----------------

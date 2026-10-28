@@ -63,6 +63,7 @@ namespace SquidLauncher.UI
             state.Band = band;
             state.Transform = new TranslateTransform();
             band.RenderTransform = state.Transform;
+            ApplyClip(bar);
             // 滑块显隐由模板触发器跟随 IsIndeterminate；跟着它开关动画，非不确定态就不空转
             band.IsVisibleChanged += (s, args) => Sync(bar, state);
             Sync(bar, state);
@@ -71,7 +72,23 @@ namespace SquidLauncher.UI
         static void Bar_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             var bar = (ProgressBar)sender;
+            ApplyClip(bar);
             if (States.TryGetValue(bar, out var state) && state.Band != null && state.Band.IsVisible) Restart(bar, state);
+        }
+
+        /// <summary>
+        /// 把模板根节点从矩形裁剪换成与轨道圆角一致的圆角裁剪。
+        /// 模板上的 ClipToBounds 是矩形：滑块扫到两端、半截露在条外时，露出的那半截会被
+        /// 直角切掉，正好盖住轨道本身的圆角，看上去就是“圆角变方角”。
+        /// </summary>
+        static void ApplyClip(ProgressBar bar)
+        {
+            if (!(bar.Template?.FindName("TemplateRoot", bar) is FrameworkElement host)) return;
+            if (!(bar.Template?.FindName("PART_Track", bar) is Border track)) return;
+            double w = host.ActualWidth, h = host.ActualHeight;
+            if (w <= 0 || h <= 0) return;
+            double r = Math.Min(track.CornerRadius.TopLeft, Math.Min(w, h) / 2);
+            host.Clip = new RectangleGeometry(new Rect(0, 0, w, h), r, r);
         }
 
         static void Sync(ProgressBar bar, State state)
